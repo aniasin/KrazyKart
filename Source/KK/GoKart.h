@@ -22,7 +22,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
 	UPROPERTY(EditAnywhere)
-	float MaxDegreesPerSecond = 90;
+	float MinTurningRadius = 10;
+	UPROPERTY(EditAnywhere)
+	float RollingResistanceCoefficient = 0.015;
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -46,6 +48,7 @@ private:
 	void UpdateLocationFromVelocity(float DeltaTime);
 	void UpdateRotation(float DeltaTime);
 	FVector GetAirResistance();
+	FVector GetRollingResistance();
 
 
 };

@@ -45,6 +45,7 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
 {
 	FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
 	Force += GetAirResistance();
+	Force += GetRollingResistance();
 	FVector Acceleration = Force / Mass;
 
 	Velocity += Acceleration * DeltaTime;
@@ -64,11 +65,11 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
 
 void AGoKart::UpdateRotation(float DeltaTime)
 {
-	float RotationAngle = MaxDegreesPerSecond * DeltaTime * Steering;
-	FQuat DeltaRotation(GetActorUpVector(), FMath::DegreesToRadians(RotationAngle));
+	float DeltaLocation = FVector::DotProduct(GetActorForwardVector(), Velocity) * DeltaTime;
+	float RotationAngle = DeltaLocation / MinTurningRadius * Steering;
+	FQuat DeltaRotation(GetActorUpVector(), RotationAngle);
 
-	Velocity = DeltaRotation.RotateVector(Velocity);
-	
+	Velocity = DeltaRotation.RotateVector(Velocity);	
 
 	AddActorWorldRotation(DeltaRotation);
 }
@@ -76,6 +77,13 @@ void AGoKart::UpdateRotation(float DeltaTime)
 FVector AGoKart::GetAirResistance()
 {
 	return -Velocity.GetSafeNormal() * Velocity.SizeSquared() * DragCoefficient;
+}
+
+FVector AGoKart::GetRollingResistance()
+{
+	float AccelerationDueToGravity = -GetWorld()->GetGravityZ() / 100;
+	float NormalForce = Mass * AccelerationDueToGravity;
+	return -Velocity.GetSafeNormal() * NormalForce * RollingResistanceCoefficient;
 }
 
 void AGoKart::MoveForward(float Value)
