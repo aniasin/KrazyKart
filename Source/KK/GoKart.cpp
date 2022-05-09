@@ -2,6 +2,7 @@
 
 
 #include "GoKart.h"
+#include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 
 
@@ -10,6 +11,7 @@ AGoKart::AGoKart()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 }
 
@@ -29,6 +31,11 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AGoKart::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		NetUpdateFrequency = 1;
+	}
 	
 }
 
@@ -52,14 +59,35 @@ FString GetEnumText(ENetRole Role)
 // Called every frame
 void AGoKart::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+	Super::Tick(DeltaTime); 
+	
+	if (IsLocallyControlled())
+	{
+		FGoKartMove Move;
+		Move.DeltaTime = DeltaTime;
+		Move.Steering = Steering;
+		Move.Throttle = Throttle;
+		//TODO Set time
+
+		Server_SendMove(Move);
+	}
 
 	UpdateRotation(DeltaTime);
-	UpdateLocationFromVelocity(DeltaTime); 
-	
+	UpdateLocationFromVelocity(DeltaTime);
 
+	if (HasAuthority())
+	{
+		ServerState.Transform = GetActorTransform();
+		ServerState.Velocity = Velocity;
+		//TODO Update LastMove
+	}
 	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(GetLocalRole()), this, FColor::Green, DeltaTime);
+}
 
+void AGoKart::OnRep_ServerState()
+{
+	SetActorTransform(ServerState.Transform);
+	Velocity = ServerState.Velocity;
 }
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
@@ -72,7 +100,7 @@ void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
 	Velocity += Acceleration * DeltaTime;
 
 	FHitResult HitResult;
-	FVector Translation = Velocity * 100 * DeltaTime;
+	FVector Translation = ServerState.Velocity * 100 * DeltaTime;
 	AddActorWorldOffset(Translation, true, &HitResult);
 
 	if (HitResult.IsValidBlockingHit())
@@ -90,7 +118,7 @@ void AGoKart::UpdateRotation(float DeltaTime)
 	float RotationAngle = DeltaLocation / MinTurningRadius * Steering;
 	FQuat DeltaRotation(GetActorUpVector(), RotationAngle);
 
-	Velocity = DeltaRotation.RotateVector(Velocity);	
+	Velocity = DeltaRotation.RotateVector(Velocity);
 
 	AddActorWorldRotation(DeltaRotation);
 }
@@ -107,38 +135,25 @@ FVector AGoKart::GetRollingResistance()
 	return -Velocity.GetSafeNormal() * NormalForce * RollingResistanceCoefficient;
 }
 
+void AGoKart::Server_SendMove_Implementation(FGoKartMove Move)
+{
+	Throttle = Move.Throttle;
+	Steering = Move.Steering;
+}
+
+bool AGoKart::Server_SendMove_Validate(FGoKartMove Move)
+{
+	return true; //TODO make better validation
+}
+
 void AGoKart::MoveForward(float Value)
 {
 	Throttle = Value;
-	Server_MoveForward(Value);
 }
-
-void AGoKart::Server_MoveForward_Implementation(float Value)
-{
-	Throttle = Value;
-}
-
-bool AGoKart::Server_MoveForward_Validate(float Value)
-{
-	
-	return FMath::Abs(Value) <= 1 ;
-}
-
 
 void AGoKart::MoveRight(float Value)
 {
 	Steering = Value;
-	Server_MoveRight(Value);
-}
-
-void AGoKart::Server_MoveRight_Implementation(float Value)
-{
-	Steering = Value;
-}
-
-bool AGoKart::Server_MoveRight_Validate(float Value)
-{
-	return FMath::Abs(Value) <= 1;
 }
 
 void AGoKart::QuitGame()
@@ -146,3 +161,10 @@ void AGoKart::QuitGame()
 	GEngine->GetFirstLocalPlayerController(GetWorld())->ConsoleCommand("quit");
 }
 
+void AGoKart::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AGoKart, ServerState);
+	DOREPLIFETIME(AGoKart, Throttle);
+	DOREPLIFETIME(AGoKart, Steering);
+}

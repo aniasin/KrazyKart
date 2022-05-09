@@ -6,6 +6,37 @@
 #include "GameFramework/Pawn.h"
 #include "GoKart.generated.h"
 
+
+USTRUCT()
+struct FGoKartMove
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	float DeltaTime;
+	UPROPERTY()
+	float Time;
+	UPROPERTY()
+	float Throttle;
+	UPROPERTY()
+	float Steering;
+};
+
+USTRUCT()
+struct FGoKartState
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	float DeltaTime;
+	UPROPERTY()
+	FGoKartMove LastMove;
+	UPROPERTY()
+	FVector Velocity;
+	UPROPERTY()
+	FTransform Transform;
+};
+
 UCLASS()
 class KK_API AGoKart : public APawn
 {
@@ -37,18 +68,25 @@ protected:
 	virtual void BeginPlay() override;
 
 	void MoveForward(float Value);
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_MoveForward(float Value);
-
 	void MoveRight(float Value);
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_MoveRight(float Value);
+	void Server_SendMove(FGoKartMove Move);
+
 	void QuitGame();
 
 private:	
+	
 	FVector Velocity;
+	UPROPERTY(Replicated)
 	float Throttle;
+	UPROPERTY(Replicated)
 	float Steering;
+
+	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
+	FGoKartState ServerState;
+
+	UFUNCTION()
+	void OnRep_ServerState();
 
 	void UpdateLocationFromVelocity(float DeltaTime);
 	void UpdateRotation(float DeltaTime);
