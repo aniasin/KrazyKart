@@ -2,6 +2,7 @@
 
 
 #include "GoKart.h"
+#include "DrawDebugHelpers.h"
 
 
 // Sets default values
@@ -31,15 +32,35 @@ void AGoKart::BeginPlay()
 	
 }
 
+FString GetEnumText(ENetRole Role)
+{
+	switch (Role)
+	{
+	case ROLE_None:
+		return "none";
+	case ROLE_SimulatedProxy:
+		return "SimulatedProxy";
+	case ROLE_AutonomousProxy:
+		return "AutonomousProxy";
+	case ROLE_Authority:
+		return "Authority";
+	default:
+		return "ERROR";
+	}
+}
+
 // Called every frame
 void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	UpdateRotation(DeltaTime);
-	UpdateLocationFromVelocity(DeltaTime);
-}
+	UpdateLocationFromVelocity(DeltaTime); 
+	
 
+	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(GetLocalRole()), this, FColor::Green, DeltaTime);
+
+}
 
 void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
 {
@@ -89,16 +110,39 @@ FVector AGoKart::GetRollingResistance()
 void AGoKart::MoveForward(float Value)
 {
 	Throttle = Value;
+	Server_MoveForward(Value);
 }
+
+void AGoKart::Server_MoveForward_Implementation(float Value)
+{
+	Throttle = Value;
+}
+
+bool AGoKart::Server_MoveForward_Validate(float Value)
+{
+	
+	return FMath::Abs(Value) <= 1 ;
+}
+
 
 void AGoKart::MoveRight(float Value)
 {
 	Steering = Value;
+	Server_MoveRight(Value);
+}
+
+void AGoKart::Server_MoveRight_Implementation(float Value)
+{
+	Steering = Value;
+}
+
+bool AGoKart::Server_MoveRight_Validate(float Value)
+{
+	return FMath::Abs(Value) <= 1;
 }
 
 void AGoKart::QuitGame()
 {
 	GEngine->GetFirstLocalPlayerController(GetWorld())->ConsoleCommand("quit");
 }
-
 

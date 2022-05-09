@@ -37,7 +37,12 @@ protected:
 	virtual void BeginPlay() override;
 
 	void MoveForward(float Value);
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_MoveForward(float Value);
+
 	void MoveRight(float Value);
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_MoveRight(float Value);
 	void QuitGame();
 
 private:	
