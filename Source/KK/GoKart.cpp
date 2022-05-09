@@ -2,13 +2,25 @@
 
 
 #include "GoKart.h"
-#include "Math/UnrealMathUtility.h"
+
 
 // Sets default values
 AGoKart::AGoKart()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+}
+
+// Called to bind functionality to input
+void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	PlayerInputComponent->BindAxis("MoveForward", this, &AGoKart::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &AGoKart::MoveRight);
+
+	PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AGoKart::QuitGame);
 
 }
 
@@ -24,32 +36,56 @@ void AGoKart::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
-	FVector Acceleration = Force / Mass;
-	Velocity += Acceleration * DeltaTime;
-
-	FVector Translation = Velocity * 100 * DeltaTime;
-	AddActorWorldOffset(Translation);
-
-	FString Speed = FString::SanitizeFloat(Velocity.X);
-	GEngine->AddOnScreenDebugMessage(0, 2, FColor::Green, TEXT("SPEED: " + Speed));
-
+	UpdateRotation(DeltaTime);
+	UpdateLocationFromVelocity(DeltaTime);
 }
 
-// Called to bind functionality to input
-void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+
+void AGoKart::UpdateLocationFromVelocity(float DeltaTime)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	FVector Force = GetActorForwardVector() * MaxDrivingForce * Throttle;
+	Force += GetAirResistance();
+	FVector Acceleration = Force / Mass;
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &AGoKart::MoveForward);
+	Velocity += Acceleration * DeltaTime;
 
-	PlayerInputComponent->BindAction("Escape", IE_Pressed, this, &AGoKart::QuitGame);
+	FHitResult HitResult;
+	FVector Translation = Velocity * 100 * DeltaTime;
+	AddActorWorldOffset(Translation, true, &HitResult);
 
+	if (HitResult.IsValidBlockingHit())
+	{
+		Velocity = FVector::ZeroVector;
+	}
+
+	FString SpeedString = FString::SanitizeFloat(Velocity.Size());
+	GEngine->AddOnScreenDebugMessage(0, 2, FColor::Green, TEXT("SPEED: " + SpeedString));
+}
+
+void AGoKart::UpdateRotation(float DeltaTime)
+{
+	float RotationAngle = MaxDegreesPerSecond * DeltaTime * Steering;
+	FQuat DeltaRotation(GetActorUpVector(), FMath::DegreesToRadians(RotationAngle));
+
+	Velocity = DeltaRotation.RotateVector(Velocity);
+	
+
+	AddActorWorldRotation(DeltaRotation);
+}
+
+FVector AGoKart::GetAirResistance()
+{
+	return -Velocity.GetSafeNormal() * Velocity.SizeSquared() * DragCoefficient;
 }
 
 void AGoKart::MoveForward(float Value)
 {
 	Throttle = Value;
+}
+
+void AGoKart::MoveRight(float Value)
+{
+	Steering = Value;
 }
 
 void AGoKart::QuitGame()

@@ -18,7 +18,11 @@ public:
 	UPROPERTY(EditAnywhere)
 	float Mass = 1000;
 	UPROPERTY(EditAnywhere)
+	float DragCoefficient = 1;
+	UPROPERTY(EditAnywhere)
 	float MaxDrivingForce = 10000;
+	UPROPERTY(EditAnywhere)
+	float MaxDegreesPerSecond = 90;
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -31,11 +35,17 @@ protected:
 	virtual void BeginPlay() override;
 
 	void MoveForward(float Value);
+	void MoveRight(float Value);
 	void QuitGame();
 
 private:	
 	FVector Velocity;
 	float Throttle;
+	float Steering;
+
+	void UpdateLocationFromVelocity(float DeltaTime);
+	void UpdateRotation(float DeltaTime);
+	FVector GetAirResistance();
 
 
 };
