@@ -5,22 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "KK/MoveComponent.h"
+#include "KK/ReplicationComponent.h"
 #include "GoKart.generated.h"
-
-USTRUCT()
-struct FGoKartState
-{
-	GENERATED_BODY()
-
-		UPROPERTY()
-		float DeltaTime;
-	UPROPERTY()
-		FGoKartMove LastMove;
-	UPROPERTY()
-		FVector Velocity;
-	UPROPERTY()
-		FTransform Transform;
-};
 
 UCLASS()
 class KK_API AGoKart : public APawn
@@ -46,16 +32,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SendMove(FGoKartMove Move);
-
-private:	
-	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
-	FGoKartState ServerState;
-
-	UFUNCTION()
-	void OnRep_ServerState();
-
+private:
 	void QuitGame();
 
 };

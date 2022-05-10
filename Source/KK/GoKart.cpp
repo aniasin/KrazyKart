@@ -2,7 +2,6 @@
 
 
 #include "GoKart.h"
-#include "Net/UnrealNetwork.h"
 #include "DrawDebugHelpers.h"
 
 
@@ -14,6 +13,8 @@ AGoKart::AGoKart()
 	bReplicates = true;
 
 	MoveComponent = CreateDefaultSubobject<UMoveComponent>(TEXT("MoveComp"));
+	ReplicationComponent = CreateDefaultSubobject<UReplicationComponent>(TEXT("ReplicationComp"));
+	ReplicationComponent->MoveComponent = MoveComponent;
 }
 
 // Called to bind functionality to input
@@ -36,7 +37,7 @@ void AGoKart::BeginPlay()
 	if (HasAuthority())
 	{
 		NetUpdateFrequency = 1;
-	}	
+	}
 }
 
 FString GetEnumText(ENetRole Role)
@@ -59,50 +60,9 @@ FString GetEnumText(ENetRole Role)
 // Called every frame
 void AGoKart::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime); 
+	Super::Tick(DeltaTime);
 
-	if (GetLocalRole() == ROLE_AutonomousProxy)
-	{
-		FGoKartMove Move = MoveComponent->CreateMove(DeltaTime);
-		MoveComponent->SimulateMove(Move, ServerState.Velocity);
-		MoveComponent->AddUnaknowledgedMove(Move);
-		Server_SendMove(Move);
-	}
-	if (GetLocalRole() == ROLE_Authority && IsLocallyControlled())
-	{
-		FGoKartMove Move = MoveComponent->CreateMove(DeltaTime);
-		Server_SendMove(Move);
-	}
-	if (GetLocalRole() == ROLE_SimulatedProxy)
-	{
-		MoveComponent->SimulateMove(ServerState.LastMove, ServerState.Velocity);
-	}
 	DrawDebugString(GetWorld(), FVector(0, 0, 100), GetEnumText(GetLocalRole()), this, FColor::Green, DeltaTime);
-}
-
-void AGoKart::Server_SendMove_Implementation(FGoKartMove Move)
-{
-	MoveComponent->SimulateMove(Move, ServerState.Velocity);
-	ServerState.LastMove = Move;
-	ServerState.Transform = GetActorTransform();
-	ServerState.Velocity = MoveComponent->GetVelocity();
-}
-
-bool AGoKart::Server_SendMove_Validate(FGoKartMove Move)
-{
-	return true; //TODO make better validation
-}
-
-void AGoKart::OnRep_ServerState()
-{
-	SetActorTransform(ServerState.Transform);
-	MoveComponent->SetVelocity(ServerState.Velocity);
-	MoveComponent->ClearAknowledgedMoves(ServerState.LastMove);
-
-	for (const FGoKartMove& Move : MoveComponent->GetUnaknowledgedMoves())
-	{
-		MoveComponent->SimulateMove(Move, ServerState.Velocity);
-	}
 }
 
 void AGoKart::QuitGame()
@@ -110,8 +70,4 @@ void AGoKart::QuitGame()
 	GEngine->GetFirstLocalPlayerController(GetWorld())->ConsoleCommand("quit");
 }
 
-void AGoKart::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AGoKart, ServerState);
-}
+

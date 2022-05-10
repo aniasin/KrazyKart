@@ -7,10 +7,6 @@
 // Sets default values for this component's properties
 UMoveComponent::UMoveComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
 
 }
 
@@ -18,13 +14,6 @@ UMoveComponent::UMoveComponent()
 void UMoveComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-}
-
-// Called every frame
-void UMoveComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 }
 
@@ -64,8 +53,8 @@ void UMoveComponent::MoveRight(float Value)
 
 void UMoveComponent::SimulateMove(FGoKartMove Move, FVector ServerVelocity)
 {
-	UpdateRotation(Move);
 	UpdateVelocity(Move);
+	UpdateRotation(Move);
 	ManageCollision(Move, ServerVelocity);
 }
 
