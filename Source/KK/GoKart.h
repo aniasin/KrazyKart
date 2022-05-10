@@ -4,37 +4,22 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "KK/MoveComponent.h"
 #include "GoKart.generated.h"
-
-
-USTRUCT()
-struct FGoKartMove
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	float DeltaTime;
-	UPROPERTY()
-	float Time;
-	UPROPERTY()
-	float Throttle;
-	UPROPERTY()
-	float Steering;
-};
 
 USTRUCT()
 struct FGoKartState
 {
 	GENERATED_BODY()
 
+		UPROPERTY()
+		float DeltaTime;
 	UPROPERTY()
-	float DeltaTime;
+		FGoKartMove LastMove;
 	UPROPERTY()
-	FGoKartMove LastMove;
+		FVector Velocity;
 	UPROPERTY()
-	FVector Velocity;
-	UPROPERTY()
-	FTransform Transform;
+		FTransform Transform;
 };
 
 UCLASS()
@@ -46,16 +31,10 @@ public:
 	// Sets default values for this pawn's properties
 	AGoKart();
 
-	UPROPERTY(EditAnywhere)
-	float Mass = 1000;
-	UPROPERTY(EditAnywhere)
-	float DragCoefficient = 1;
-	UPROPERTY(EditAnywhere)
-	float MaxDrivingForce = 10000;
-	UPROPERTY(EditAnywhere)
-	float MinTurningRadius = 10;
-	UPROPERTY(EditAnywhere)
-	float RollingResistanceCoefficient = 0.015;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	class UMoveComponent* MoveComponent;
+	UPROPERTY()
+	class UReplicationComponent* ReplicationComponent;
 
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -67,35 +46,16 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	void MoveForward(float Value);
-	void MoveRight(float Value);
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendMove(FGoKartMove Move);
 
-	void QuitGame();
-
 private:	
-	
-	FVector Velocity;
-	float Throttle;
-	float Steering;
-
-	TArray<FGoKartMove> UnaknowledgedMoves;
-
 	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
 	FGoKartState ServerState;
 
 	UFUNCTION()
 	void OnRep_ServerState();
 
-	void UpdateLocation(FGoKartMove Move);
-	void UpdateRotation(FGoKartMove Move);
-	FGoKartMove CreateMove(float DeltaTime);
-	void ClearAknowledgedMoves(FGoKartMove LastMove);
-	void SimulateMove(const FGoKartMove& Move);
-
-	FVector GetAirResistance();
-	FVector GetRollingResistance();
-
+	void QuitGame();
 
 };
