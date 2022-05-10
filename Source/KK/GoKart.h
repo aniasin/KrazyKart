@@ -77,10 +77,10 @@ protected:
 private:	
 	
 	FVector Velocity;
-	UPROPERTY(Replicated)
 	float Throttle;
-	UPROPERTY(Replicated)
 	float Steering;
+
+	TArray<FGoKartMove> UnaknowledgedMoves;
 
 	UPROPERTY(ReplicatedUsing=OnRep_ServerState)
 	FGoKartState ServerState;
@@ -88,8 +88,12 @@ private:
 	UFUNCTION()
 	void OnRep_ServerState();
 
-	void UpdateLocationFromVelocity(float DeltaTime);
-	void UpdateRotation(float DeltaTime);
+	void UpdateLocation(FGoKartMove Move);
+	void UpdateRotation(FGoKartMove Move);
+	FGoKartMove CreateMove(float DeltaTime);
+	void ClearAknowledgedMoves(FGoKartMove LastMove);
+	void SimulateMove(const FGoKartMove& Move);
+
 	FVector GetAirResistance();
 	FVector GetRollingResistance();
 
