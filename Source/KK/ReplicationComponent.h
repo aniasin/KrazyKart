@@ -12,8 +12,8 @@ struct FGoKartState
 {
 	GENERATED_BODY()
 
-		UPROPERTY()
-		float DeltaTime;
+	UPROPERTY()
+	float DeltaTime;
 	UPROPERTY()
 		FGoKartMove LastMove;
 	UPROPERTY()

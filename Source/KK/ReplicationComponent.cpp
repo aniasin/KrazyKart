@@ -22,21 +22,21 @@ void UReplicationComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (GetOwner()->GetLocalRole() == ROLE_AutonomousProxy)
+	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
 		FGoKartMove Move = MoveComponent->CreateMove(DeltaTime);
-		MoveComponent->SimulateMove(Move, ServerState.Velocity);
+		MoveComponent->SimulateMove(Move);
 		MoveComponent->AddUnaknowledgedMove(Move);
 		Server_SendMove(Move);
 	}
-	if (GetOwner()->GetLocalRole() == ROLE_Authority && GetOwner()->GetInstigatorController()->IsLocalController())
+	if (GetOwnerRole() == ROLE_Authority && GetOwner()->GetInstigatorController()->IsLocalController())
 	{
 		FGoKartMove Move = MoveComponent->CreateMove(DeltaTime);
 		Server_SendMove(Move);
 	}
-	if (GetOwner()->GetLocalRole() == ROLE_SimulatedProxy)
+	if (GetOwnerRole() == ROLE_SimulatedProxy)
 	{
-		MoveComponent->SimulateMove(ServerState.LastMove, ServerState.Velocity);
+		MoveComponent->SimulateMove(ServerState.LastMove);
 	}
 }
 
@@ -44,7 +44,7 @@ void UReplicationComponent::Server_SendMove_Implementation(FGoKartMove Move)
 {
 	if (!MoveComponent) return;
 
-	MoveComponent->SimulateMove(Move, ServerState.Velocity);
+	MoveComponent->SimulateMove(Move);
 	ServerState.LastMove = Move;
 	ServerState.Transform = GetOwner()->GetActorTransform();
 	ServerState.Velocity = MoveComponent->GetVelocity();
@@ -61,11 +61,11 @@ void UReplicationComponent::OnRep_ServerState()
 
 	GetOwner()->SetActorTransform(ServerState.Transform);
 	MoveComponent->SetVelocity(ServerState.Velocity);
-	MoveComponent->ClearAknowledgedMoves(ServerState.LastMove);
+	MoveComponent->ClearAknowledgedMoves();
 
 	for (const FGoKartMove& Move : MoveComponent->GetUnaknowledgedMoves())
 	{
-		MoveComponent->SimulateMove(Move, ServerState.Velocity);
+		MoveComponent->SimulateMove(Move);
 	}
 }
 void UReplicationComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

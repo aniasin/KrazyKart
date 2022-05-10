@@ -11,8 +11,8 @@ struct FGoKartMove
 {
 	GENERATED_BODY()
 
-		UPROPERTY()
-		float DeltaTime;
+	UPROPERTY()
+	float DeltaTime;
 	UPROPERTY()
 		float Time;
 	UPROPERTY()
@@ -42,16 +42,17 @@ public:
 		float RollingResistanceCoefficient = 0.015;
 
 	FGoKartMove CreateMove(float DeltaTime);
-	void SimulateMove(FGoKartMove Move, FVector ServerVelocity);
+	void SimulateMove(FGoKartMove Move);
 
 	void UpdateVelocity(FGoKartMove Move);
 	void UpdateRotation(FGoKartMove Move);
-	void ManageCollision(FGoKartMove Move, FVector ServerVelocity);
+	void ManageCollision(FGoKartMove Move);
 
 	FVector GetVelocity();
+	FGoKartMove GetLastMove() { return LastMove; }
 	TArray<FGoKartMove> GetUnaknowledgedMoves();
 	void AddUnaknowledgedMove(FGoKartMove Move);
-	void ClearAknowledgedMoves(FGoKartMove LastMove);
+	void ClearAknowledgedMoves();
 	void SetVelocity(FVector NewVelocity);
 
 	void Move(float Value);
@@ -60,11 +61,13 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction);
 
 private:
 	FVector Velocity;
 	float Steering;
 	float Throttle;
+	FGoKartMove LastMove;
 
 	TArray<FGoKartMove> UnaknowledgedMoves;
 

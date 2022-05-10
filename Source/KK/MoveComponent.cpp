@@ -7,7 +7,7 @@
 // Sets default values for this component's properties
 UMoveComponent::UMoveComponent()
 {
-
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
 // Called when the game starts
@@ -15,6 +15,17 @@ void UMoveComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+}
+
+void UMoveComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	if (GetOwnerRole() == ROLE_AutonomousProxy || GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		LastMove = CreateMove(DeltaTime);
+		SimulateMove(LastMove);
+	}
 }
 
 FGoKartMove UMoveComponent::CreateMove(float DeltaTime)
@@ -27,7 +38,7 @@ FGoKartMove UMoveComponent::CreateMove(float DeltaTime)
 
 	return Move;
 }
-void UMoveComponent::ClearAknowledgedMoves(FGoKartMove LastMove)
+void UMoveComponent::ClearAknowledgedMoves()
 {
 	TArray<FGoKartMove> NewMoves;
 
@@ -51,11 +62,11 @@ void UMoveComponent::MoveRight(float Value)
 	Steering = Value;
 }
 
-void UMoveComponent::SimulateMove(FGoKartMove Move, FVector ServerVelocity)
+void UMoveComponent::SimulateMove(FGoKartMove Move)
 {
 	UpdateVelocity(Move);
 	UpdateRotation(Move);
-	ManageCollision(Move, ServerVelocity);
+	ManageCollision(Move);
 }
 
 void UMoveComponent::UpdateVelocity(FGoKartMove Move)
@@ -82,10 +93,10 @@ void UMoveComponent::UpdateRotation(FGoKartMove Move)
 	GetOwner()->AddActorWorldRotation(DeltaRotation);
 }
 
-void UMoveComponent::ManageCollision(FGoKartMove Move, FVector ServerVelocity)
+void UMoveComponent::ManageCollision(FGoKartMove Move)
 {
 	FHitResult HitResult;
-	FVector Translation = ServerVelocity * 100 * Move.DeltaTime;
+	FVector Translation = Velocity * 100 * Move.DeltaTime;
 	GetOwner()->AddActorWorldOffset(Translation, true, &HitResult);
 
 	if (HitResult.IsValidBlockingHit())
